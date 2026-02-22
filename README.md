@@ -47,7 +47,7 @@ go install github.com/carlosedujs/pumu@latest
 
 ## Usage
 
-Pumu has three modes of operation:
+Pumu has four commands:
 
 ### 1. Default Mode (Refresh Current Directory)
 
@@ -69,7 +69,25 @@ Running refresh in current directory...
 🎉 Refresh complete!
 ```
 
-### 2. List Mode (Dry Run)
+### 2. Version Command
+
+Display the current version of Pumu:
+
+```bash
+pumu version
+# or
+pumu --version
+# or
+pumu -v
+```
+
+**Example Output:**
+
+```
+pumu version v1.0.0-beta.1
+```
+
+### 3. List Mode (Dry Run)
 
 Recursively scans for heavy folders without deleting them:
 
@@ -92,7 +110,7 @@ pumu list
 <span style="color: #00ffff;">💾 Total space that can be freed: 1.79 GB</span>
 </pre>
 
-### 3. Sweep Mode
+### 4. Sweep Mode
 
 Recursively scans and **deletes** all heavy folders:
 
@@ -117,7 +135,7 @@ pumu sweep
 <span style="color: #00ffff;">💾 Total space actually freed: 1.79 GB</span>
 </pre>
 
-### 4. Sweep with Reinstall
+#### Sweep with Reinstall Flag
 
 Delete folders and automatically reinstall dependencies for each project:
 
