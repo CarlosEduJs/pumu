@@ -97,27 +97,29 @@ release:
 
     ## Installation
 
-    ### Homebrew (macOS/Linux)
-    ```bash
-    brew install yourusername/tap/pumu
-    ```
-
     ### Binary Downloads
     Download the appropriate binary for your system from the assets below.
 
-brews:
-  - name: pumu
-    repository:
-      owner: carlosedujs
-      name: homebrew-tap
-    directory: Formula
-    homepage: https://github.com/carlosedujs/pumu
-    description: "Fast, concurrent disk space management tool for developers"
-    license: MIT
-    install: |
-      bin.install "pumu"
-    test: |
-      system "#{bin}/pumu", "--version"
+    ### Manual Installation
+    ```bash
+    # Download the appropriate binary for your system
+    # Extract and move to /usr/local/bin or add to PATH
+    ```
+
+# Homebrew tap disabled until repository is created
+# brews:
+#   - name: pumu
+#     repository:
+#       owner: carlosedujs
+#       name: homebrew-tap
+#     directory: Formula
+#     homepage: https://github.com/carlosedujs/pumu
+#     description: "Fast, concurrent disk space management tool for developers"
+#     license: MIT
+#     install: |
+#       bin.install "pumu"
+#     test: |
+#       system "#{bin}/pumu", "--version"
 
 nfpms:
   - id: pumu
