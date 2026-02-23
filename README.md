@@ -264,15 +264,6 @@ cd ~/workspace
 pumu list
 ```
 
-### Fresh Start on a Project
-
-Remove and reinstall dependencies for a clean build:
-
-```bash
-cd my-project
-pumu
-```
-
 ### Bulk Cleanup with Reinstall
 
 Clean multiple projects and reinstall everything:
