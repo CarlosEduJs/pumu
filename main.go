@@ -32,11 +32,12 @@ func main() {
 		return
 	case "sweep":
 		reinstallFlag := sweepCmd.Bool("reinstall", false, "Reinstall packages after removing their folders")
+		noSelectFlag := sweepCmd.Bool("no-select", false, "Skip interactive selection (delete/reinstall all found folders)")
 		if err := sweepCmd.Parse(os.Args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "Error parsing flags: %v\n", err)
 			os.Exit(1)
 		}
-		err := scanner.SweepDir(".", false, *reinstallFlag)
+		err := scanner.SweepDir(".", false, *reinstallFlag, *noSelectFlag)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -46,7 +47,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error parsing flags: %v\n", err)
 			os.Exit(1)
 		}
-		err := scanner.SweepDir(".", true, false)
+		err := scanner.SweepDir(".", true, false, true)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
