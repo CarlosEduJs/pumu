@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 
 	"pumu/internal/pkg"
+	"pumu/internal/ui"
 
 	"github.com/fatih/color"
 )
@@ -94,7 +95,7 @@ func RefreshCurrentDir() error {
 	return nil
 }
 
-func SweepDir(root string, dryRun bool, reinstall bool) error {
+func SweepDir(root string, dryRun bool, reinstall bool, noSelect bool) error {
 	printScanMessage(dryRun, root)
 
 	targets, err := findTargetFolders(root)
@@ -108,11 +109,30 @@ func SweepDir(root string, dryRun bool, reinstall bool) error {
 	}
 
 	folders := calculateFolderSizes(targets)
+
+	// Interactive selection for deletion
+	if !dryRun && !noSelect {
+		selected, err := selectFolders(folders, "🗑️  Select folders to delete:")
+		if err != nil {
+			return fmt.Errorf("selection failed: %w", err)
+		}
+		if selected == nil {
+			color.Yellow("\n⚠️  Operation canceled.")
+			return nil
+		}
+		folders = selected
+	}
+
+	if len(folders) == 0 {
+		color.Green("\n✨ No folders selected for deletion.\n")
+		return nil
+	}
+
 	totalFreed, totalDeleted := processFolders(folders, dryRun)
 	printSummary(dryRun, folders, totalFreed, totalDeleted)
 
 	if !dryRun && reinstall {
-		reinstallDependencies(folders)
+		reinstallDependencies(folders, noSelect)
 	}
 
 	return nil
@@ -258,9 +278,43 @@ func printSummary(dryRun bool, folders []TargetFolder, totalFreed, totalDeleted 
 	}
 }
 
-func reinstallDependencies(folders []TargetFolder) {
-	color.Yellow("\n⚙️  Reinstalling dependencies sequentially...")
+// selectFolders presents an interactive multi-select for choosing folders.
+// Returns nil if the user canceled, or the filtered list of selected folders.
+func selectFolders(folders []TargetFolder, title string) ([]TargetFolder, error) {
+	items := make([]ui.Item, len(folders))
+	for i, f := range folders {
+		items[i] = ui.Item{
+			Label:    f.Path,
+			Detail:   formatSize(f.Size),
+			Selected: true,
+		}
+	}
+
+	result, err := ui.RunMultiSelect(title, items)
+	if err != nil {
+		return nil, err
+	}
+	if result.Canceled {
+		return nil, nil
+	}
+
+	var selected []TargetFolder
+	for i, item := range result.Items {
+		if item.Selected {
+			selected = append(selected, folders[i])
+		}
+	}
+	return selected, nil
+}
+
+func reinstallDependencies(folders []TargetFolder, noSelect bool) {
+	// Build unique project list with their detected package managers
 	seen := make(map[string]bool)
+	type reinstallTarget struct {
+		Dir string
+		PM  pkg.PackageManager
+	}
+	var targets []reinstallTarget
 
 	for _, folder := range folders {
 		baseDir := filepath.Dir(folder.Path)
@@ -271,13 +325,59 @@ func reinstallDependencies(folders []TargetFolder) {
 
 		pm := pkg.DetectManager(baseDir)
 		if pm != pkg.Unknown {
-			fmt.Printf("📦 Reinstalling for %s (%s)...\n", baseDir, pm)
-			err := pkg.InstallDependencies(baseDir, pm, true)
-			if err != nil {
-				color.Red("❌ Failed to reinstall %s: %v", baseDir, err)
-			} else {
-				color.Green("✅ Reinstalled %s", baseDir)
+			targets = append(targets, reinstallTarget{Dir: baseDir, PM: pm})
+		}
+	}
+
+	if len(targets) == 0 {
+		color.Yellow("\n⚠️  No projects with known package managers found for reinstallation.")
+		return
+	}
+
+	// Interactive selection for reinstallation
+	if !noSelect {
+		items := make([]ui.Item, len(targets))
+		for i, t := range targets {
+			items[i] = ui.Item{
+				Label:    t.Dir,
+				Detail:   string(t.PM),
+				Selected: true,
 			}
+		}
+
+		result, err := ui.RunMultiSelect("📦 Select projects to reinstall:", items)
+		if err != nil {
+			color.Red("❌ Selection failed: %v", err)
+			return
+		}
+		if result.Canceled {
+			color.Yellow("\n⚠️  Reinstallation canceled.")
+			return
+		}
+
+		// Filter to only selected targets
+		var selected []reinstallTarget
+		for i, item := range result.Items {
+			if item.Selected {
+				selected = append(selected, targets[i])
+			}
+		}
+		targets = selected
+	}
+
+	if len(targets) == 0 {
+		color.Green("\n✨ No projects selected for reinstallation.")
+		return
+	}
+
+	color.Yellow("\n⚙️  Reinstalling dependencies sequentially...")
+	for _, t := range targets {
+		fmt.Printf("📦 Reinstalling for %s (%s)...\n", t.Dir, t.PM)
+		err := pkg.InstallDependencies(t.Dir, t.PM, true)
+		if err != nil {
+			color.Red("❌ Failed to reinstall %s: %v", t.Dir, err)
+		} else {
+			color.Green("✅ Reinstalled %s", t.Dir)
 		}
 	}
 	color.Green("🎉 All target reinstallations complete!")
