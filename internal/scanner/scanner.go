@@ -117,7 +117,7 @@ func SweepDir(root string, dryRun bool, reinstall bool, noSelect bool) error {
 			return fmt.Errorf("selection failed: %w", err)
 		}
 		if selected == nil {
-			color.Yellow("\n⚠️  Operation cancelled.")
+			color.Yellow("\n⚠️  Operation canceled.")
 			return nil
 		}
 		folders = selected
@@ -279,7 +279,7 @@ func printSummary(dryRun bool, folders []TargetFolder, totalFreed, totalDeleted 
 }
 
 // selectFolders presents an interactive multi-select for choosing folders.
-// Returns nil if the user cancelled, or the filtered list of selected folders.
+// Returns nil if the user canceled, or the filtered list of selected folders.
 func selectFolders(folders []TargetFolder, title string) ([]TargetFolder, error) {
 	items := make([]ui.Item, len(folders))
 	for i, f := range folders {
@@ -294,7 +294,7 @@ func selectFolders(folders []TargetFolder, title string) ([]TargetFolder, error)
 	if err != nil {
 		return nil, err
 	}
-	if result.Cancelled {
+	if result.Canceled {
 		return nil, nil
 	}
 
@@ -350,8 +350,8 @@ func reinstallDependencies(folders []TargetFolder, noSelect bool) {
 			color.Red("❌ Selection failed: %v", err)
 			return
 		}
-		if result.Cancelled {
-			color.Yellow("\n⚠️  Reinstallation cancelled.")
+		if result.Canceled {
+			color.Yellow("\n⚠️  Reinstallation canceled.")
 			return
 		}
 

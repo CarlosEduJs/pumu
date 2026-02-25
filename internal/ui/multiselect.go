@@ -17,17 +17,17 @@ type Item struct {
 
 // Result holds the outcome of the multi-select interaction.
 type Result struct {
-	Items     []Item
-	Cancelled bool
+	Items    []Item
+	Canceled bool
 }
 
 type model struct {
-	title     string
-	items     []Item
-	cursor    int
-	showHelp  bool
-	done      bool
-	cancelled bool
+	title    string
+	items    []Item
+	cursor   int
+	showHelp bool
+	done     bool
+	canceled bool
 }
 
 // Styles
@@ -95,61 +95,49 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
+		return m.handleKeyMsg(msg)
+	}
 
-		// Navigation
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.items)-1 {
-				m.cursor++
-			}
+	return m, nil
+}
 
-		// Home / End
-		case "home", "g":
-			m.cursor = 0
-		case "end", "G":
-			m.cursor = len(m.items) - 1
-
-		// Toggle current item
-		case " ":
-			m.items[m.cursor].Selected = !m.items[m.cursor].Selected
-
-		// Select all
-		case "a":
-			for i := range m.items {
-				m.items[i].Selected = true
-			}
-
-		// Deselect all
-		case "n":
-			for i := range m.items {
-				m.items[i].Selected = false
-			}
-
-		// Invert selection
-		case "i":
-			for i := range m.items {
-				m.items[i].Selected = !m.items[i].Selected
-			}
-
-		// Toggle help
-		case "?":
-			m.showHelp = !m.showHelp
-
-		// Confirm
-		case "enter":
-			m.done = true
-			return m, tea.Quit
-
-		// Cancel
-		case "q", "esc", "ctrl+c":
-			m.cancelled = true
-			m.done = true
-			return m, tea.Quit
+func (m model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "up", "k":
+		if m.cursor > 0 {
+			m.cursor--
 		}
+	case "down", "j":
+		if m.cursor < len(m.items)-1 {
+			m.cursor++
+		}
+	case "home", "g":
+		m.cursor = 0
+	case "end", "G":
+		m.cursor = len(m.items) - 1
+	case " ":
+		m.items[m.cursor].Selected = !m.items[m.cursor].Selected
+	case "a":
+		for i := range m.items {
+			m.items[i].Selected = true
+		}
+	case "n":
+		for i := range m.items {
+			m.items[i].Selected = false
+		}
+	case "i":
+		for i := range m.items {
+			m.items[i].Selected = !m.items[i].Selected
+		}
+	case "?":
+		m.showHelp = !m.showHelp
+	case "enter":
+		m.done = true
+		return m, tea.Quit
+	case "q", "esc", "ctrl+c":
+		m.canceled = true
+		m.done = true
+		return m, tea.Quit
 	}
 
 	return m, nil
@@ -244,10 +232,13 @@ func RunMultiSelect(title string, items []Item) (Result, error) {
 		return Result{}, fmt.Errorf("failed to run multi-select: %w", err)
 	}
 
-	fm := finalModel.(model)
+	fm, ok := finalModel.(model)
+	if !ok {
+		return Result{}, fmt.Errorf("unexpected model type")
+	}
 
 	return Result{
-		Items:     fm.items,
-		Cancelled: fm.cancelled,
+		Items:    fm.items,
+		Canceled: fm.canceled,
 	}, nil
 }

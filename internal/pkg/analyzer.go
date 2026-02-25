@@ -11,10 +11,10 @@ import (
 // PruneResult holds the analysis result for a folder, deciding if it's safe to prune.
 type PruneResult struct {
 	Path         string
-	Size         int64
-	Score        int    // 0-100, higher = safer to delete
 	Reason       string // Human readable explanation
-	SafeToDelete bool   // Whether score meets the threshold
+	Size         int64
+	Score        int  // 0-100, higher = safer to delete
+	SafeToDelete bool // Whether score meets the threshold
 }
 
 // AnalyzeFolder evaluates whether a dependency/build folder is safe to prune

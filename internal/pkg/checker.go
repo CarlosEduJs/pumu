@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -12,8 +13,8 @@ import (
 type HealthResult struct {
 	Dir     string
 	PM      PackageManager
-	Healthy bool
 	Issues  []string
+	Healthy bool
 }
 
 // CheckHealth verifies the integrity of a project's dependencies.
@@ -188,7 +189,8 @@ func checkPipHealth(dir string) HealthResult {
 	}
 
 	// Try pip check inside the venv
-	cmd := exec.Command(venvPath+"/bin/pip", "check")
+	pipBin := filepath.Join(filepath.Clean(venvPath), "bin", "pip")
+	cmd := exec.Command(pipBin, "check") //nolint:gosec // path is constructed from known project directory
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 
