@@ -103,6 +103,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
+	case "up", "k", "down", "j", "home", "g", "end", "G":
+		m.handleNavigation(msg.String())
+	case " ", "a", "n", "i":
+		m.handleSelection(msg.String())
+	case "?":
+		m.showHelp = !m.showHelp
+	case "enter":
+		m.done = true
+		return m, tea.Quit
+	case "q", "esc", "ctrl+c":
+		m.canceled = true
+		m.done = true
+		return m, tea.Quit
+	}
+
+	return m, nil
+}
+
+func (m *model) handleNavigation(key string) {
+	switch key {
 	case "up", "k":
 		if m.cursor > 0 {
 			m.cursor--
@@ -115,6 +135,11 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.cursor = 0
 	case "end", "G":
 		m.cursor = len(m.items) - 1
+	}
+}
+
+func (m *model) handleSelection(key string) {
+	switch key {
 	case " ":
 		m.items[m.cursor].Selected = !m.items[m.cursor].Selected
 	case "a":
@@ -129,18 +154,7 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		for i := range m.items {
 			m.items[i].Selected = !m.items[i].Selected
 		}
-	case "?":
-		m.showHelp = !m.showHelp
-	case "enter":
-		m.done = true
-		return m, tea.Quit
-	case "q", "esc", "ctrl+c":
-		m.canceled = true
-		m.done = true
-		return m, tea.Quit
 	}
-
-	return m, nil
 }
 
 func (m model) View() string {
