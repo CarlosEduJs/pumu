@@ -8,7 +8,7 @@ import (
 	"pumu/internal/scanner"
 )
 
-const version = "v1.0.0-beta.1"
+const version = "v1.1.0-beta.0"
 
 func main() {
 	sweepCmd := flag.NewFlagSet("sweep", flag.ExitOnError)
@@ -77,6 +77,17 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "--help", "-h":
+		fmt.Println("Usage: pumu <command> [options]")
+		fmt.Println("Commands:")
+		fmt.Println("  list      List heavy dependency folders")
+		fmt.Println("  sweep     Sweep heavy dependency folders")
+		fmt.Println("  repair    Repair dependency folders")
+		fmt.Println("  prune     Prune dependency folders")
+		fmt.Println("  help      Show this help message")
+		fmt.Println("Options:")
+		fmt.Println("  -v, --version  Print version information")
+		fmt.Println("  -h, --help     Show this help message")	
 	default:
 		fmt.Printf("Unknown command '%s'. Run 'pumu list', 'pumu sweep', 'pumu repair', 'pumu prune' or just 'pumu'.\n", os.Args[1])
 		os.Exit(1)
