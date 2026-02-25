@@ -87,7 +87,7 @@ func main() {
 		fmt.Println("  help      Show this help message")
 		fmt.Println("Options:")
 		fmt.Println("  -v, --version  Print version information")
-		fmt.Println("  -h, --help     Show this help message")	
+		fmt.Println("  -h, --help     Show this help message")
 	default:
 		fmt.Printf("Unknown command '%s'. Run 'pumu list', 'pumu sweep', 'pumu repair', 'pumu prune' or just 'pumu'.\n", os.Args[1])
 		os.Exit(1)

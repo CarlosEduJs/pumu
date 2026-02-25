@@ -22,11 +22,11 @@ type Result struct {
 }
 
 type model struct {
-	title    string
-	items    []Item
-	cursor   int
-	showHelp bool
-	done     bool
+	title     string
+	items     []Item
+	cursor    int
+	showHelp  bool
+	done      bool
 	cancelled bool
 }
 
