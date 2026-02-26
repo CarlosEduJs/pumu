@@ -3,7 +3,6 @@ package pkg
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -51,7 +50,7 @@ func checkNodeHealth(dir string, pm PackageManager, binary string) HealthResult 
 	result := HealthResult{Dir: dir, PM: pm, Healthy: true}
 
 	targetPath := dir + "/node_modules"
-	if !fileExists(targetPath) && !dirExists(targetPath) {
+	if !FileExists(targetPath) && !DirExists(targetPath) {
 		result.Healthy = false
 		result.Issues = append(result.Issues, "node_modules not found")
 		return result
@@ -120,7 +119,7 @@ func checkCargoHealth(dir string) HealthResult {
 	result := HealthResult{Dir: dir, PM: Cargo, Healthy: true}
 
 	targetPath := dir + "/target"
-	if !dirExists(targetPath) {
+	if !DirExists(targetPath) {
 		result.Healthy = false
 		result.Issues = append(result.Issues, "target/ not found (never built)")
 		return result
@@ -182,7 +181,7 @@ func checkPipHealth(dir string) HealthResult {
 	result := HealthResult{Dir: dir, PM: Pip, Healthy: true}
 
 	venvPath := dir + "/.venv"
-	if !dirExists(venvPath) {
+	if !DirExists(venvPath) {
 		result.Healthy = false
 		result.Issues = append(result.Issues, ".venv not found")
 		return result
@@ -214,11 +213,4 @@ func checkPipHealth(dir string) HealthResult {
 	return result
 }
 
-// dirExists checks if a directory exists at the given path.
-func dirExists(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return info.IsDir()
-}
+

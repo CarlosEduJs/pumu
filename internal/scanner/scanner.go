@@ -20,36 +20,21 @@ type TargetFolder struct {
 	Size int64
 }
 
-func isIgnoredPath(name string) bool {
-	ignored := []string{
-		".Trash", ".cache", ".npm", ".yarn", ".cargo", ".rustup",
-		"Library", "AppData", "Local", "Roaming", ".vscode", ".idea",
-	}
-	for _, ig := range ignored {
-		if name == ig {
-			return true
-		}
-	}
-	return false
+// ignoredPaths contains directories that pumu should never descend into.
+var ignoredPaths = map[string]bool{
+	".Trash": true, ".cache": true, ".npm": true, ".yarn": true,
+	".cargo": true, ".rustup": true, "Library": true, "AppData": true,
+	"Local": true, "Roaming": true, ".vscode": true, ".idea": true,
 }
 
-func isDeletableTarget(name string) bool {
-	targets := []string{
-		"node_modules",
-		"target",
-		".next",
-		".svelte-kit",
-		".venv",
-		"dist",
-		"build",
-	}
-	for _, t := range targets {
-		if name == t {
-			return true
-		}
-	}
-	return false
+// deletableTargets contains known heavy dependency/build folders.
+var deletableTargets = map[string]bool{
+	"node_modules": true, "target": true, ".next": true,
+	".svelte-kit": true, ".venv": true, "dist": true, "build": true,
 }
+
+func isIgnoredPath(name string) bool  { return ignoredPaths[name] }
+func isDeletableTarget(name string) bool { return deletableTargets[name] }
 
 func getTargetFolder(pm pkg.PackageManager) string {
 	switch pm {
@@ -75,7 +60,7 @@ func RefreshCurrentDir() error {
 	targetFolder := getTargetFolder(pm)
 	targetPath := filepath.Join(dir, targetFolder)
 
-	if fileExists(targetPath) {
+	if pkg.FileExists(targetPath) {
 		fmt.Printf("🗑️  Removing %s...\n", targetFolder)
 		duration, err := pkg.RemoveDirectory(targetPath)
 		if err != nil {
@@ -217,29 +202,26 @@ func processFolders(folders []TargetFolder, dryRun bool) (int64, int64) {
 	fmt.Printf("%-80s | %s\n", "Folder Path", "Size")
 	color.Unset()
 
-	sem := make(chan struct{}, 20)
-
 	for _, folder := range folders {
 		printFolderInfo(folder)
 		totalFreed += folder.Size
+	}
 
-		if !dryRun {
+	if !dryRun {
+		color.Yellow("\n🗑️  Deleting folders concurrently...")
+		sem := make(chan struct{}, 20)
+		for _, folder := range folders {
 			deletedWg.Add(1)
 			go func(p string, s int64) {
 				defer deletedWg.Done()
 				sem <- struct{}{}
 				defer func() { <-sem }()
-
 				_, err := pkg.RemoveDirectory(p)
 				if err == nil {
 					atomic.AddInt64(&totalDeleted, s)
 				}
 			}(folder.Path, folder.Size)
 		}
-	}
-
-	if !dryRun {
-		color.Yellow("\n🗑️  Deleting folders concurrently...")
 		deletedWg.Wait()
 	}
 
@@ -400,13 +382,7 @@ func dirSize(path string) (int64, error) {
 	return size, err
 }
 
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
+
 
 // formatSize converts a byte count into a human-readable string (KB, MB, GB, etc.)
 func formatSize(bytes int64) string {

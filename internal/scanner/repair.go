@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
+	"strings"
 
 	"pumu/internal/pkg"
 
@@ -13,7 +13,7 @@ import (
 
 // RepairDir scans for projects with broken dependencies and repairs them.
 func RepairDir(root string, verbose bool) error {
-	color.Cyan(" Scanning for projects with broken dependencies in '%s'...\n", root)
+	color.Cyan("🔧 Scanning for projects with broken dependencies in '%s'...\n", root)
 
 	projects, err := findProjects(root)
 	if err != nil {
@@ -25,7 +25,7 @@ func RepairDir(root string, verbose bool) error {
 		return nil
 	}
 
-	color.Yellow("👽  Found %d projects. Checking health...\n", len(projects))
+	color.Yellow("⏱️  Found %d projects. Checking health...\n", len(projects))
 
 	var repaired, total int
 
@@ -36,7 +36,7 @@ func RepairDir(root string, verbose bool) error {
 		if result.Healthy {
 			if verbose {
 				fmt.Printf("\n📁 %s (%s)\n", proj.Dir, proj.PM)
-				color.Green("   😎 Healthy, skipping.")
+				color.Green("   ✅ Healthy, skipping.")
 			}
 			continue
 		}
@@ -51,8 +51,8 @@ func RepairDir(root string, verbose bool) error {
 		targetFolder := getTargetFolder(proj.PM)
 		targetPath := filepath.Join(proj.Dir, targetFolder)
 
-		if dirExists(targetPath) {
-			fmt.Printf("   🤢🗑️  Removing %s...\n", targetFolder)
+		if pkg.DirExists(targetPath) {
+			fmt.Printf("   🗑️  Removing %s...\n", targetFolder)
 			_, err := pkg.RemoveDirectory(targetPath)
 			if err != nil {
 				color.Red("   ❌ Failed to remove %s: %v", targetFolder, err)
@@ -61,20 +61,20 @@ func RepairDir(root string, verbose bool) error {
 		}
 
 		// Reinstall
-		fmt.Printf("   🏃🏾‍♂️‍➡️ Reinstalling...\n")
+		fmt.Printf("   📦 Reinstalling...\n")
 		err := pkg.InstallDependencies(proj.Dir, proj.PM, true)
 		if err != nil {
-			color.Red("   😢 Failed to reinstall: %v", err)
+			color.Red("   ❌ Failed to reinstall: %v", err)
 			continue
 		}
 
-		color.Green("   😎 Repaired!")
+		color.Green("   ✅ Repaired!")
 		repaired++
 	}
 
 	fmt.Println()
-	fmt.Println("-----")
-	color.Green("👽 Repair complete! Fixed %d/%d projects.", repaired, total)
+	fmt.Println(strings.Repeat("-", 40))
+	color.Green("🔧 Repair complete! Fixed %d/%d projects.", repaired, total)
 
 	return nil
 }
@@ -86,12 +86,9 @@ type project struct {
 }
 
 // findProjects recursively scans for directories containing lockfiles/manifests.
+// WalkDir is sequential, so no mutex is needed.
 func findProjects(root string) ([]project, error) {
 	var projects []project
-	var mu sync.Mutex
-
-	// Track visited dirs to avoid duplicates
-	visited := make(map[string]bool)
 
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -103,15 +100,9 @@ func findProjects(root string) ([]project, error) {
 				return filepath.SkipDir
 			}
 
-			// Try to detect package manager
 			pm := pkg.DetectManager(path)
 			if pm != pkg.Unknown {
-				mu.Lock()
-				if !visited[path] {
-					visited[path] = true
-					projects = append(projects, project{Dir: path, PM: pm})
-				}
-				mu.Unlock()
+				projects = append(projects, project{Dir: path, PM: pm})
 			}
 		}
 
@@ -121,11 +112,4 @@ func findProjects(root string) ([]project, error) {
 	return projects, err
 }
 
-// dirExists checks if a directory exists at the given path.
-func dirExists(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return info.IsDir()
-}
+
