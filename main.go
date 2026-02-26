@@ -8,7 +8,7 @@ import (
 	"pumu/internal/scanner"
 )
 
-const version = "v1.1.0-beta.0"
+const version = "v1.2.0-beta.0"
 
 func main() {
 	if len(os.Args) < 2 {
