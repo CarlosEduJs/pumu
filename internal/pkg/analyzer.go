@@ -1,3 +1,5 @@
+// Package pkg provides utilities for detecting, installing, checking,
+// and analyzing dependencies across multiple package managers.
 package pkg
 
 import (

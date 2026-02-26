@@ -11,7 +11,7 @@ func TestDetectManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	tests := []struct {
 		name         string
@@ -33,17 +33,19 @@ func TestDetectManager(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			caseDir := filepath.Join(tempDir, tt.name)
-			err := os.MkdirAll(caseDir, 0755)
+			err := os.MkdirAll(caseDir, 0o750) //nolint:gosec // test directory
 			if err != nil {
 				t.Fatalf("failed to create dir %s: %v", caseDir, err)
 			}
 
 			lockfilePath := filepath.Join(caseDir, tt.lockfileName)
-			file, err := os.Create(lockfilePath)
+			file, err := os.Create(lockfilePath) //nolint:gosec // controlled test path
 			if err != nil {
 				t.Fatalf("failed to create fake lock file %s: %v", lockfilePath, err)
 			}
-			file.Close()
+			if err := file.Close(); err != nil {
+				t.Fatalf("failed to close file: %v", err)
+			}
 
 			pm := DetectManager(caseDir)
 			if pm != tt.expected {

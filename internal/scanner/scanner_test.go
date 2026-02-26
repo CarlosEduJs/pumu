@@ -1,4 +1,4 @@
-package scanner
+package scanner //nolint:revive // internal tests need access to unexported functions
 
 import (
 	"testing"
