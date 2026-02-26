@@ -111,5 +111,3 @@ func findProjects(root string) ([]project, error) {
 
 	return projects, err
 }
-
-

@@ -212,5 +212,3 @@ func checkPipHealth(dir string) HealthResult {
 
 	return result
 }
-
-

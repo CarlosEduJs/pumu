@@ -1,3 +1,4 @@
+// Package ui provides interactive TUI components for pumu using Bubble Tea.
 package ui
 
 import (
@@ -190,7 +191,7 @@ func (m model) View() string {
 			detail = " " + detailStyle.Render(item.Detail)
 		}
 
-		b.WriteString(fmt.Sprintf("%s%s %s%s\n", cursor, checkbox, label, detail))
+		fmt.Fprintf(&b, "%s%s %s%s\n", cursor, checkbox, label, detail)
 	}
 
 	// Status bar
@@ -222,10 +223,10 @@ func (m model) View() string {
 			{"q/esc", "cancel"},
 		}
 		for _, h := range helpItems {
-			b.WriteString(fmt.Sprintf("  %s %s\n",
+			fmt.Fprintf(&b, "  %s %s\n",
 				helpKeyStyle.Render(fmt.Sprintf("%-8s", h.key)),
 				helpDescStyle.Render(h.desc),
-			))
+			)
 		}
 	} else {
 		b.WriteString(helpStyle.Render("  press ? for help"))

@@ -1,4 +1,6 @@
-package scanner
+// Package scanner provides core logic for scanning, processing, and cleaning
+// heavy dependency folders across multiple package managers.
+package scanner //nolint:revive // internal package, not stdlib conflict
 
 import (
 	"fmt"
@@ -15,6 +17,7 @@ import (
 	"github.com/fatih/color"
 )
 
+// TargetFolder holds the path and calculated size of a detected heavy dependency folder.
 type TargetFolder struct {
 	Path string
 	Size int64
@@ -33,7 +36,7 @@ var deletableTargets = map[string]bool{
 	".svelte-kit": true, ".venv": true, "dist": true, "build": true,
 }
 
-func isIgnoredPath(name string) bool  { return ignoredPaths[name] }
+func isIgnoredPath(name string) bool     { return ignoredPaths[name] }
 func isDeletableTarget(name string) bool { return deletableTargets[name] }
 
 func getTargetFolder(pm pkg.PackageManager) string {
@@ -48,6 +51,8 @@ func getTargetFolder(pm pkg.PackageManager) string {
 	return "node_modules"
 }
 
+// RefreshCurrentDir detects the package manager in the current directory,
+// removes the dependency folder, and reinstalls dependencies.
 func RefreshCurrentDir() error {
 	dir := "."
 	pm := pkg.DetectManager(dir)
@@ -80,6 +85,9 @@ func RefreshCurrentDir() error {
 	return nil
 }
 
+// SweepDir scans root for heavy dependency folders and deletes them.
+// Pass dryRun=true for list-only mode, reinstall=true to reinstall after deletion,
+// and noSelect=true to skip interactive selection.
 func SweepDir(root string, dryRun bool, reinstall bool, noSelect bool) error {
 	printScanMessage(dryRun, root)
 
@@ -381,8 +389,6 @@ func dirSize(path string) (int64, error) {
 	})
 	return size, err
 }
-
-
 
 // formatSize converts a byte count into a human-readable string (KB, MB, GB, etc.)
 func formatSize(bytes int64) string {

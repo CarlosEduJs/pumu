@@ -1,3 +1,5 @@
+// Package pkg provides utilities for detecting, installing, checking,
+// and analyzing dependencies across multiple package managers.
 package pkg
 
 import (
@@ -5,8 +7,10 @@ import (
 	"path/filepath"
 )
 
+// PackageManager represents the type of package manager detected in a project.
 type PackageManager string
 
+// Supported package managers.
 const (
 	Npm     PackageManager = "npm"
 	Pnpm    PackageManager = "pnpm"
@@ -19,6 +23,7 @@ const (
 	Unknown PackageManager = "unknown"
 )
 
+// DetectManager identifies the package manager used in dir by checking for lock files.
 func DetectManager(dir string) PackageManager {
 	managers := map[PackageManager][]string{
 		Bun:   {"bun.lockb", "bun.lock"},
