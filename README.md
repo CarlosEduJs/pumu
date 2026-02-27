@@ -33,6 +33,12 @@ Pumu can detect and clean these dependency/build folders:
 
 ## Installation
 
+### Homebrew (Recommended)
+
+```bash
+brew install carlosedujs/pumu/pumu
+```
+
 ### From Source
 
 ```bash
@@ -51,20 +57,30 @@ go install github.com/carlosedujs/pumu@latest
 ## Usage
 
 ```bash
-pumu --help
+pumu [command] --help
 ```
 
 ```
-Usage: pumu <command> [options]
-Commands:
-  list      List heavy dependency folders
-  sweep     Sweep heavy dependency folders
-  repair    Repair dependency folders
-  prune     Prune dependency folders
-  help      Show this help message
-Options:
-  -v, --version  Print version information
-  -h, --help     Show this help message
+pumu scans your filesystem for heavy dependency folders
+(node_modules, target, .venv, etc.) and lets you sweep, list,
+repair or prune them with ease.
+
+Usage:
+  pumu [flags]
+  pumu [command]
+
+Available Commands:
+  list        List heavy dependency folders (dry-run)
+  sweep       Sweep (delete) heavy dependency folders
+  repair      Repair dependency folders
+  prune       Prune dependency folders by staleness score
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+
+Flags:
+  -h, --help          help for pumu
+  -p, --path string   Root path to scan (default ".")
+  -v, --version       version for pumu
 ```
 
 ### 1. Default Mode (Refresh Current Directory)
@@ -92,8 +108,6 @@ Running refresh in current directory...
 Display the current version of Pumu:
 
 ```bash
-pumu version
-# or
 pumu --version
 # or
 pumu -v
@@ -102,15 +116,16 @@ pumu -v
 **Example Output:**
 
 ```
-pumu version v1.1.0-beta.0
+pumu version v1.2.1-rc.1
 ```
 
 ### 3. List Mode (Dry Run)
 
-Recursively scans for heavy folders without deleting them:
+Recursively scans for heavy folders without deleting them. You can specify a path using the global `-p` or `--path` flag:
 
 ```bash
-pumu list
+pumu list                      # scan current directory
+pumu list --path ~/projects    # scan a specific directory
 ```
 
 **Example Output:**
@@ -134,6 +149,7 @@ Recursively scans and **deletes** heavy folders. Shows an interactive multi-sele
 
 ```bash
 pumu sweep
+pumu sweep -p ~/dev
 ```
 
 **Example Output:**
@@ -312,7 +328,13 @@ To avoid scanning irrelevant directories, Pumu skips:
 
 ```
 pumu/
-├── main.go                      # CLI entry point and command routing
+├── main.go                      # CLI entry point
+├── cmd/                         # CLI commands (Cobra)
+│   ├── root.go                  # Root command and global flags
+│   ├── sweep.go                 # Sweep command definition
+│   ├── list.go                  # List command definition
+│   ├── repair.go                # Repair command definition
+│   └── prune.go                 # Prune command definition
 ├── internal/
 │   ├── scanner/
 │   │   ├── scanner.go           # Core scanning and deletion logic
