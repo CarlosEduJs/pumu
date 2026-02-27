@@ -111,6 +111,7 @@ brews:
     repository:
       owner: carlosedujs
       name: homebrew-pumu
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     directory: Formula
     homepage: https://github.com/carlosedujs/pumu
     description: "Fast, concurrent disk space management tool for developers"
