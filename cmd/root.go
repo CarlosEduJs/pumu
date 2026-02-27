@@ -21,17 +21,34 @@ repair or prune them with ease.
 
 Running pumu with no subcommand refreshes the current directory.`,
 	Version: version,
-	// Running bare `pumu` refreshes the current dir.
+	Example: `  pumu                        # refresh current directory
+  pumu list                   # list all heavy folders
+  pumu sweep --no-select      # delete all without prompting`,
+	SilenceErrors: true,
+	SilenceUsage:  true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("Running refresh in current directory...")
+		path, err := cmd.Flags().GetString("path")
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Running refresh in %s...\n", path)
 		return scanner.RefreshCurrentDir()
 	},
+}
+
+func init() {
+	rootCmd.PersistentFlags().StringP("path", "p", ".", "Root path to scan")
+
+	rootCmd.SetVersionTemplate("pumu version {{.Version}}\n")
+
+	// Disable the default completion command output on –completion-script-*
+	rootCmd.CompletionOptions.DisableDefaultCmd = false
 }
 
 // Execute runs the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
 }
