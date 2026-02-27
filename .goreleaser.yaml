@@ -106,20 +106,28 @@ release:
     # Extract and move to /usr/local/bin or add to PATH
     ```
 
-# Homebrew tap disabled until repository is created
-# brews:
-#   - name: pumu
-#     repository:
-#       owner: carlosedujs
-#       name: homebrew-tap
-#     directory: Formula
-#     homepage: https://github.com/carlosedujs/pumu
-#     description: "Fast, concurrent disk space management tool for developers"
-#     license: MIT
-#     install: |
-#       bin.install "pumu"
-#     test: |
-#       system "#{bin}/pumu", "--version"
+brews:
+  - name: pumu
+    repository:
+      owner: carlosedujs
+      name: homebrew-pumu
+    directory: Formula
+    homepage: https://github.com/carlosedujs/pumu
+    description: "Fast, concurrent disk space management tool for developers"
+    license: MIT
+    install: |
+      bin.install "pumu"
+    test: |
+      system "#{bin}/pumu", "--version"
+    url_template: "https://github.com/carlosedujs/pumu/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: Carlos Edu (via Goreleaser)
+      email: carloseduardogit@gmail.com
+
+    caveats: |
+      Pumu is a CLI to clean heavy dependency folders.
+      Run `pumu --help` for usage.
+      For interactive mode: just `pumu` or `pumu sweep`.
 
 nfpms:
   - id: pumu
