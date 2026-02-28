@@ -1,0 +1,10 @@
+{
+  "name": "example-npm",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "express": "^4.21.0",
+    "lodash": "^4.17.21",
+    "chalk": "^5.4.0"
+  }
+}
