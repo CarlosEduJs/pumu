@@ -1,0 +1,9 @@
+{
+  "name": "example-bun",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "hono": "^4.7.0",
+    "drizzle-orm": "^0.38.0"
+  }
+}
