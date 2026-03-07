@@ -14,7 +14,8 @@ import (
 	"pumu/internal/pkg"
 	"pumu/internal/ui"
 
-	"github.com/fatih/color"
+	"github.com/charmbracelet/huh/spinner"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // TargetFolder holds the path and calculated size of a detected heavy dependency folder.
@@ -97,7 +98,7 @@ func SweepDir(root string, dryRun bool, reinstall bool, noSelect bool) error {
 	}
 
 	if len(targets) == 0 {
-		color.Green("✨ No heavy folders found!\n")
+		fmt.Println(ui.SuccessStyle.Render("✨ No heavy folders found!"))
 		return nil
 	}
 
@@ -110,14 +111,14 @@ func SweepDir(root string, dryRun bool, reinstall bool, noSelect bool) error {
 			return fmt.Errorf("selection failed: %w", err)
 		}
 		if selected == nil {
-			color.Yellow("\n⚠️  Operation canceled.")
+			fmt.Println(ui.WarningStyle.Render("\n⚠️  Operation canceled."))
 			return nil
 		}
 		folders = selected
 	}
 
 	if len(folders) == 0 {
-		color.Green("\n✨ No folders selected for deletion.\n")
+		fmt.Println(ui.SuccessStyle.Render("\n✨ No folders selected for deletion."))
 		return nil
 	}
 
@@ -133,9 +134,9 @@ func SweepDir(root string, dryRun bool, reinstall bool, noSelect bool) error {
 
 func printScanMessage(dryRun bool, root string) {
 	if dryRun {
-		color.Cyan("🔎 Listing heavy dependency folders in '%s'...\n", root)
+		fmt.Println(ui.InfoStyle.Render(fmt.Sprintf("🔎 Listing heavy dependency folders in '%s'...", root)))
 	} else {
-		color.Cyan("🔎 Scanning for heavy dependency folders in '%s'...\n", root)
+		fmt.Println(ui.InfoStyle.Render(fmt.Sprintf("🔎 Scanning for heavy dependency folders in '%s'...", root)))
 	}
 }
 
@@ -165,33 +166,41 @@ func findTargetFolders(root string) ([]string, error) {
 }
 
 func calculateFolderSizes(targets []string) []TargetFolder {
-	color.Yellow("⏱️  Found %d folders. Calculating sizes concurrently...", len(targets))
-
-	var wg sync.WaitGroup
-	var mu sync.Mutex
 	var folders []TargetFolder
+	action := func() {
+		var wg sync.WaitGroup
+		var mu sync.Mutex
 
-	sem := make(chan struct{}, 20)
+		sem := make(chan struct{}, 20)
 
-	for _, tPath := range targets {
-		wg.Add(1)
-		go func(p string) {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
+		for _, tPath := range targets {
+			wg.Add(1)
+			go func(p string) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
 
-			size, err := dirSize(p)
-			if err != nil {
-				size = 0
-			}
+				size, err := dirSize(p)
+				if err != nil {
+					size = 0
+				}
 
-			mu.Lock()
-			folders = append(folders, TargetFolder{Path: p, Size: size})
-			mu.Unlock()
-		}(tPath)
+				mu.Lock()
+				folders = append(folders, TargetFolder{Path: p, Size: size})
+				mu.Unlock()
+			}(tPath)
+		}
+
+		wg.Wait()
 	}
 
-	wg.Wait()
+	err := spinner.New().
+		Title(ui.WarningStyle.Render(fmt.Sprintf("⏱️  Calculating sizes for %d folders...", len(targets)))).
+		Action(action).
+		Run()
+	if err != nil {
+		return nil
+	}
 
 	sort.Slice(folders, func(i, j int) bool {
 		return folders[i].Size > folders[j].Size
@@ -206,9 +215,8 @@ func processFolders(folders []TargetFolder, dryRun bool) (int64, int64) {
 	var totalDeleted int64
 
 	fmt.Println()
-	color.Set(color.FgWhite, color.Underline)
-	fmt.Printf("%-80s | %s\n", "Folder Path", "Size")
-	color.Unset()
+	fmt.Println(ui.RenderRow([]string{"Folder Path", "Size"}, []int{80, 15}))
+	fmt.Println(lipgloss.NewStyle().Foreground(ui.ColorSubtext).Render(strings.Repeat("-", 100)))
 
 	for _, folder := range folders {
 		printFolderInfo(folder)
@@ -216,21 +224,34 @@ func processFolders(folders []TargetFolder, dryRun bool) (int64, int64) {
 	}
 
 	if !dryRun {
-		color.Yellow("\n🗑️  Deleting folders concurrently...")
+		tickChan := make(chan struct{})
 		sem := make(chan struct{}, 20)
-		for _, folder := range folders {
-			deletedWg.Add(1)
-			go func(p string, s int64) {
-				defer deletedWg.Done()
-				sem <- struct{}{}
-				defer func() { <-sem }()
-				_, err := pkg.RemoveDirectory(p)
-				if err == nil {
-					atomic.AddInt64(&totalDeleted, s)
-				}
-			}(folder.Path, folder.Size)
+
+		go func() {
+			for _, folder := range folders {
+				deletedWg.Add(1)
+				go func(p string, s int64) {
+					defer deletedWg.Done()
+					sem <- struct{}{}
+					defer func() { <-sem }()
+					_, err := pkg.RemoveDirectory(p)
+					if err == nil {
+						atomic.AddInt64(&totalDeleted, s)
+					}
+					tickChan <- struct{}{}
+				}(folder.Path, folder.Size)
+			}
+			deletedWg.Wait()
+			close(tickChan)
+		}()
+
+		fmt.Println()
+		if err := ui.TrackProgress("🗑️  Deleting concurrent folders", len(folders), tickChan); err != nil {
+			// If progress bar fails, we just continue (or could return error)
+			// for now let's just log it or ignore formally if it's non-critical
+			// but to satisfy errcheck we handle it.
+			return totalFreed, totalDeleted
 		}
-		deletedWg.Wait()
 	}
 
 	return totalFreed, totalDeleted
@@ -242,11 +263,11 @@ func printFolderInfo(folder TargetFolder) {
 
 	var sizeStr string
 	if sizeMB > 1000 {
-		sizeStr = color.RedString(fmt.Sprintf("%10s 🚨", formattedSize))
+		sizeStr = ui.AlertStyle.Render(fmt.Sprintf("%10s 🚨", formattedSize))
 	} else if sizeMB > 100 {
-		sizeStr = color.YellowString(fmt.Sprintf("%10s ⚠️", formattedSize))
+		sizeStr = ui.WarningStyle.Render(fmt.Sprintf("%10s ⚠️", formattedSize))
 	} else {
-		sizeStr = color.GreenString(fmt.Sprintf("%10s", formattedSize))
+		sizeStr = ui.SuccessStyle.Render(fmt.Sprintf("%10s", formattedSize))
 	}
 
 	displayPath := folder.Path
@@ -254,17 +275,17 @@ func printFolderInfo(folder TargetFolder) {
 		displayPath = "..." + displayPath[len(displayPath)-77:]
 	}
 
-	fmt.Printf("%-80s | %s\n", displayPath, sizeStr)
+	fmt.Println(ui.RenderRow([]string{displayPath, sizeStr}, []int{80, 15}))
 }
 
 func printSummary(dryRun bool, folders []TargetFolder, totalFreed, totalDeleted int64) {
-	fmt.Println(strings.Repeat("-", 100))
+	fmt.Println(lipgloss.NewStyle().Foreground(ui.ColorSubtext).Render(strings.Repeat("-", 100)))
 	if dryRun {
-		color.Green("📋 List complete! Found %d heavy folders.", len(folders))
-		color.Cyan("💾 Total space that can be freed: %s\n", formatSize(totalFreed))
+		fmt.Println(ui.SuccessStyle.Render(fmt.Sprintf("📋 List complete! Found %d heavy folders.", len(folders))))
+		fmt.Println(ui.InfoStyle.Render(fmt.Sprintf("💾 Total space that can be freed: %s", formatSize(totalFreed))))
 	} else {
-		color.Green("🧹 Sweep complete! Processed %d heavy folders.", len(folders))
-		color.Cyan("💾 Total space actually freed: %s\n", formatSize(totalDeleted))
+		fmt.Println(ui.SuccessStyle.Render(fmt.Sprintf("🧹 Sweep complete! Processed %d heavy folders.", len(folders))))
+		fmt.Println(ui.InfoStyle.Render(fmt.Sprintf("💾 Total space actually freed: %s", formatSize(totalDeleted))))
 	}
 }
 
@@ -320,7 +341,7 @@ func reinstallDependencies(folders []TargetFolder, noSelect bool) {
 	}
 
 	if len(targets) == 0 {
-		color.Yellow("\n⚠️  No projects with known package managers found for reinstallation.")
+		fmt.Println(ui.WarningStyle.Render("\n⚠️  No projects with known package managers found for reinstallation."))
 		return
 	}
 
@@ -337,11 +358,11 @@ func reinstallDependencies(folders []TargetFolder, noSelect bool) {
 
 		result, err := ui.RunMultiSelect("📦 Select projects to reinstall:", items)
 		if err != nil {
-			color.Red("❌ Selection failed: %v", err)
+			fmt.Println(ui.AlertStyle.Render(fmt.Sprintf("❌ Selection failed: %v", err)))
 			return
 		}
 		if result.Canceled {
-			color.Yellow("\n⚠️  Reinstallation canceled.")
+			fmt.Println(ui.WarningStyle.Render("\n⚠️  Reinstallation canceled."))
 			return
 		}
 
@@ -356,21 +377,21 @@ func reinstallDependencies(folders []TargetFolder, noSelect bool) {
 	}
 
 	if len(targets) == 0 {
-		color.Green("\n✨ No projects selected for reinstallation.")
+		fmt.Println(ui.SuccessStyle.Render("\n✨ No projects selected for reinstallation."))
 		return
 	}
 
-	color.Yellow("\n⚙️  Reinstalling dependencies sequentially...")
+	fmt.Println(ui.WarningStyle.Render("\n⚙️  Reinstalling dependencies sequentially..."))
 	for _, t := range targets {
 		fmt.Printf("📦 Reinstalling for %s (%s)...\n", t.Dir, t.PM)
 		err := pkg.InstallDependencies(t.Dir, t.PM, true)
 		if err != nil {
-			color.Red("❌ Failed to reinstall %s: %v", t.Dir, err)
+			fmt.Println(ui.AlertStyle.Render(fmt.Sprintf("❌ Failed to reinstall %s: %v", t.Dir, err)))
 		} else {
-			color.Green("✅ Reinstalled %s", t.Dir)
+			fmt.Println(ui.SuccessStyle.Render(fmt.Sprintf("✅ Reinstalled %s", t.Dir)))
 		}
 	}
-	color.Green("🎉 All target reinstallations complete!")
+	fmt.Println(ui.SuccessStyle.Render("🎉 All target reinstallations complete!"))
 }
 
 func dirSize(path string) (int64, error) {

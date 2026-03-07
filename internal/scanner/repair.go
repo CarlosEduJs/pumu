@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,43 +9,67 @@ import (
 
 	"pumu/internal/pkg"
 
-	"github.com/fatih/color"
+	"pumu/internal/ui"
+
+	"github.com/charmbracelet/huh/spinner"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // RepairDir scans for projects with broken dependencies and repairs them.
 func RepairDir(root string, verbose bool) error {
-	color.Cyan("🔧 Scanning for projects with broken dependencies in '%s'...\n", root)
+	fmt.Println(ui.InfoStyle.Render(fmt.Sprintf("🔧 Scanning for projects with broken dependencies in '%s'...", root)))
 
-	projects, err := findProjects(root)
+	var projects []project
+	var scanErr error
+	err := spinner.New().
+		Title(ui.InfoStyle.Render("Scanning for projects...")).
+		Action(func() {
+			projects, scanErr = findProjects(root)
+		}).
+		Run()
 	if err != nil {
-		return fmt.Errorf("failed to scan projects: %w", err)
+		return fmt.Errorf("failed to run scanner: %w", err)
+	}
+
+	if scanErr != nil {
+		return fmt.Errorf("failed to scan projects: %w", scanErr)
 	}
 
 	if len(projects) == 0 {
-		color.Green("✨ No projects found!\n")
+		fmt.Println(ui.SuccessStyle.Render("✨ No projects found!"))
 		return nil
 	}
 
-	color.Yellow("⏱️  Found %d projects. Checking health...\n", len(projects))
-
 	var repaired, total int
+	fmt.Println()
 
 	for _, proj := range projects {
 		total++
-		result := pkg.CheckHealth(proj.Dir, proj.PM)
+
+		// Project header
+		fmt.Printf("📁 %s (%s)\n", ui.BoldStyle.Render(proj.Dir), ui.InfoStyle.Render(string(proj.PM)))
+
+		var result pkg.HealthResult
+		if err := spinner.New().
+			Title(ui.SubtextStyle.Render("   Checking health...")).
+			Action(func() {
+				result = pkg.CheckHealth(proj.Dir, proj.PM)
+			}).
+			Run(); err != nil {
+			fmt.Println(ui.AlertStyle.Render(fmt.Sprintf("   ❌ Failed to check health: %v", err)))
+			continue
+		}
 
 		if result.Healthy {
 			if verbose {
-				fmt.Printf("\n📁 %s (%s)\n", proj.Dir, proj.PM)
-				color.Green("   ✅ Healthy, skipping.")
+				fmt.Println(ui.SuccessStyle.Render("   ✅ Healthy, skipping."))
 			}
 			continue
 		}
 
 		// Unhealthy project — show issues and repair
-		fmt.Printf("\n📁 %s (%s)\n", proj.Dir, proj.PM)
 		for _, issue := range result.Issues {
-			color.Red("   ❌ %s", issue)
+			fmt.Println(ui.AlertStyle.Render(fmt.Sprintf("   ❌ %s", issue)))
 		}
 
 		// Remove dependency folder
@@ -52,29 +77,46 @@ func RepairDir(root string, verbose bool) error {
 		targetPath := filepath.Join(proj.Dir, targetFolder)
 
 		if pkg.DirExists(targetPath) {
-			fmt.Printf("   🗑️  Removing %s...\n", targetFolder)
-			_, err := pkg.RemoveDirectory(targetPath)
-			if err != nil {
-				color.Red("   ❌ Failed to remove %s: %v", targetFolder, err)
+			var rmErr error
+			if err := spinner.New().
+				Title(ui.WarningStyle.Render(fmt.Sprintf("   🗑️  Removing %s...", targetFolder))).
+				Action(func() {
+					_, rmErr = pkg.RemoveDirectory(targetPath)
+				}).
+				Run(); err != nil || rmErr != nil {
+				if err != nil {
+					fmt.Println(ui.AlertStyle.Render(fmt.Sprintf("   ❌ Failed to remove folder: %v", err)))
+				} else {
+					fmt.Println(ui.AlertStyle.Render(fmt.Sprintf("   ❌ Failed to remove %s: %v", targetFolder, rmErr)))
+				}
 				continue
 			}
 		}
 
 		// Reinstall
-		fmt.Printf("   📦 Reinstalling...\n")
-		err := pkg.InstallDependencies(proj.Dir, proj.PM, true)
-		if err != nil {
-			color.Red("   ❌ Failed to reinstall: %v", err)
+		installErr := errors.New("not started")
+		if err := spinner.New().
+			Title(ui.InfoStyle.Render("   📦 Reinstalling dependencies...")).
+			Action(func() {
+				installErr = pkg.InstallDependencies(proj.Dir, proj.PM, true)
+			}).
+			Run(); err != nil {
+			fmt.Println(ui.AlertStyle.Render(fmt.Sprintf("   ❌ Failed to reinstall: %v", err)))
 			continue
 		}
 
-		color.Green("   ✅ Repaired!")
+		if installErr != nil {
+			fmt.Println(ui.AlertStyle.Render(fmt.Sprintf("   ❌ Failed to reinstall: %v", installErr)))
+			continue
+		}
+
+		fmt.Println(ui.SuccessStyle.Render("   ✅ Repaired!"))
 		repaired++
 	}
 
 	fmt.Println()
-	fmt.Println(strings.Repeat("-", 40))
-	color.Green("🔧 Repair complete! Fixed %d/%d projects.", repaired, total)
+	fmt.Println(lipgloss.NewStyle().Foreground(ui.ColorSubtext).Render(strings.Repeat("-", 40)))
+	fmt.Println(ui.SuccessStyle.Render(fmt.Sprintf("🔧 Repair complete! Fixed %d/%d projects.", repaired, total)))
 
 	return nil
 }
