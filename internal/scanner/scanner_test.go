@@ -37,6 +37,8 @@ func TestIsDeletableTarget(t *testing.T) {
 		{".next", true},
 		{".svelte-kit", true},
 		{".venv", true},
+		{"vendor", true},
+		{"deps", true},
 		{"dist", true},
 		{"build", true},
 		{"src", false},
