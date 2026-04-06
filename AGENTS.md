@@ -5,10 +5,9 @@
 Pumu is a fast, concurrent disk space management CLI tool written in Go. It helps developers find and remove heavy dependency folders (node_modules, target, .venv, etc.) across multiple projects and package managers, with optional reinstallation.
 
 Key characteristics:
-- Go 1.24.2+ project using Cobra for CLI and Bubble Tea for TUI
+- Go 1.24.2+ project using Cobra for CLI
 - Concurrent operations using goroutines with semaphore-based throttling
 - Multi-package manager support (npm, pnpm, yarn, bun, deno, cargo, go, pip)
-- Interactive TUI components for folder selection
 
 ## Setup Commands
 
@@ -81,7 +80,6 @@ Use `examples/setup.sh` to install dependencies and `examples/reinstall.sh` to t
 
 ### Project-Specific Patterns
 - Use Cobra for CLI commands (see `cmd/` directory)
-- Use Bubble Tea/Huh for interactive TUI components
 - Concurrent operations should use semaphores to limit parallelism (typically 20 concurrent ops)
 - Use atomic operations for thread-safe counters
 - Error handling: return errors, don't panic; continue processing on individual failures
@@ -92,7 +90,7 @@ cmd/           - CLI command definitions (Cobra)
 internal/
   scanner/     - Core scanning, deletion, repair, prune logic
   pkg/         - Package manager detection, installation, health checks
-  ui/          - TUI components (multi-select, progress bars, styling)
+  ui/          - CLI components (multi-select)
 main.go        - Entry point
 ```
 
@@ -237,11 +235,8 @@ Scanner skips these directories (see `scanner.go`):
 5. Add tests
 6. Update README.md with usage examples
 
-### Modifying TUI Components
+### Modifying CLI Components
 - Multi-select component: `internal/ui/multiselect.go`
-- Progress bars: `internal/ui/progress.go`
-- Styling/colors: `internal/ui/style.go`
-- Uses Bubble Tea framework and Huh library
 
 ## Dependencies
 
