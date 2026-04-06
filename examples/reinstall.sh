@@ -7,10 +7,8 @@ NODE_BIN_DIR=$(dirname "$(which node 2>/dev/null || echo '/usr/local/bin')")
 BUN_BIN_DIR="$HOME/.bun/bin"
 DENO_BIN_DIR="$HOME/.deno/bin"
 LOCAL_BIN_DIR="$HOME/.local/bin"
-COMPOSER_BIN_DIR="$HOME/.composer/vendor/bin"
-PHP_BIN_DIR="/usr/bin"
 
-export PATH="$NODE_BIN_DIR:$BUN_BIN_DIR:$DENO_BIN_DIR:$LOCAL_BIN_DIR:$COMPOSER_BIN_DIR:$PHP_BIN_DIR:$PATH"
+export PATH="$NODE_BIN_DIR:$BUN_BIN_DIR:$DENO_BIN_DIR:$LOCAL_BIN_DIR:$PATH"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -36,15 +34,6 @@ fail() {
 # ─────────────────────────────────────────────
 # 1. npm projects
 # ─────────────────────────────────────────────
-if [ -d "node-npm" ]; then
-  step "node-npm (npm install)"
-  if (cd node-npm && npm install 2>&1); then
-    ok "done ($(du -sh node-npm/node_modules 2>/dev/null | cut -f1))"
-  else
-    fail "npm install failed"
-  fi
-fi
-
 if [ -d "nextjs-project" ]; then
   step "nextjs-project (npm install + next build)"
   if (cd nextjs-project && npm install 2>&1 && npx next build 2>&1); then
@@ -79,31 +68,7 @@ if [ -d "node-bun" ]; then
 fi
 
 # ─────────────────────────────────────────────
-# 4. deno projects
-# ─────────────────────────────────────────────
-if [ -d "deno-project" ]; then
-  step "deno-project (deno install)"
-  if (cd deno-project && deno install 2>&1); then
-    ok "done"
-  else
-    fail "deno install failed"
-  fi
-fi
-
-# ─────────────────────────────────────────────
-# 5. rust projects
-# ─────────────────────────────────────────────
-if [ -d "rust-project" ]; then
-  step "rust-project (cargo build)"
-  if (cd rust-project && cargo build 2>&1); then
-    ok "done ($(du -sh rust-project/target 2>/dev/null | cut -f1))"
-  else
-    fail "cargo build failed"
-  fi
-fi
-
-# ─────────────────────────────────────────────
-# 6. go projects
+# 4. go projects
 # ─────────────────────────────────────────────
 if [ -d "go-project" ]; then
   step "go-project (go build)"
@@ -115,7 +80,7 @@ if [ -d "go-project" ]; then
 fi
 
 # ─────────────────────────────────────────────
-# 7. python projects
+# 5. python projects
 # ─────────────────────────────────────────────
 if [ -d "python-project" ]; then
   step "python-project (venv + pip install)"
@@ -127,31 +92,7 @@ if [ -d "python-project" ]; then
 fi
 
 # ─────────────────────────────────────────────
-# 8. poetry projects
-# ─────────────────────────────────────────────
-if [ -d "python-poetry" ]; then
-  step "python-poetry (poetry install)"
-  if (cd python-poetry && poetry install --no-root 2>&1); then
-    ok "done ($(du -sh python-poetry/.venv 2>/dev/null | cut -f1))"
-  else
-    fail "poetry install failed"
-  fi
-fi
-
-# ─────────────────────────────────────────────
-# 9. composer projects
-# ─────────────────────────────────────────────
-if [ -d "php-composer" ]; then
-  step "php-composer (composer install)"
-  if (cd php-composer && composer install --no-interaction 2>&1); then
-    ok "done ($(du -sh php-composer/vendor 2>/dev/null | cut -f1))"
-  else
-    fail "composer install failed"
-  fi
-fi
-
-# ─────────────────────────────────────────────
-# 10. mix projects
+# 6. mix projects
 # ─────────────────────────────────────────────
 if [ -d "elixir-mix" ]; then
   step "elixir-mix (mix deps.get)"
