@@ -1,8 +1,0 @@
-{
-  "name": "pumu/example-composer",
-  "description": "Minimal Composer example for pumu",
-  "type": "project",
-  "require": {
-    "monolog/monolog": "^3.0"
-  }
-}
