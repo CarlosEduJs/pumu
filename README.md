@@ -118,7 +118,7 @@ pumu -v
 **Example Output:**
 
 ```
-pumu version v1.2.1
+pumu version v1.3.0
 ```
 
 ### 3. List Mode (Dry Run)
