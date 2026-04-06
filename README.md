@@ -332,38 +332,6 @@ To avoid scanning irrelevant directories, Pumu skips:
 - `.vscode`, `.idea`
 - `.git` (version control)
 
-## Project Structure
-
-```
-pumu/
-├── main.go                      # CLI entry point
-├── cmd/                         # CLI commands (Cobra)
-│   ├── root.go                  # Root command and global flags
-│   ├── sweep.go                 # Sweep command definition
-│   ├── list.go                  # List command definition
-│   ├── repair.go                # Repair command definition
-│   └── prune.go                 # Prune command definition
-├── internal/
-│   ├── scanner/
-│   │   ├── scanner.go           # Core scanning and deletion logic
-│   │   ├── scanner_test.go      # Scanner tests
-│   │   ├── repair.go            # Repair command logic
-│   │   └── prune.go             # Prune command logic
-│   ├── pkg/
-│   │   ├── detector.go          # Package manager detection
-│   │   ├── detector_test.go     # Detector tests
-│   │   ├── installer.go         # Dependency installation
-│   │   ├── cleaner.go           # Directory removal utilities
-│   │   ├── checker.go           # Health checks per package manager
-│   │   └── analyzer.go          # Prune scoring heuristics
-│   └── ui/
-│       └── multiselect.go       # Interactive TUI multi-select component
-├── go.mod
-├── go.sum
-├── LICENSE
-└── README.md
-```
-
 ## Requirements
 
 - **Go 1.24.0+** for building from source
