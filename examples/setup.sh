@@ -253,6 +253,57 @@ else
 fi
 
 # ─────────────────────────────────────────────
+# 9. poetry
+# ─────────────────────────────────────────────
+step "python-poetry (poetry)"
+if has poetry; then
+  mkdir -p python-poetry && cd python-poetry
+  if [ ! -f pyproject.toml ]; then
+    warn "pyproject.toml missing, skipping"
+  else
+    poetry install --no-root --quiet 2>/dev/null || true
+    ok "python-poetry created ($(du -sh .venv 2>/dev/null | cut -f1))"
+  fi
+  cd ..
+else
+  warn "poetry not found, skipping"
+fi
+
+# ─────────────────────────────────────────────
+# 10. composer
+# ─────────────────────────────────────────────
+step "php-composer (composer)"
+if has composer; then
+  mkdir -p php-composer && cd php-composer
+  if [ ! -f composer.json ]; then
+    warn "composer.json missing, skipping"
+  else
+    composer install --no-interaction --quiet 2>/dev/null || true
+    ok "php-composer created ($(du -sh vendor 2>/dev/null | cut -f1))"
+  fi
+  cd ..
+else
+  warn "composer not found, skipping"
+fi
+
+# ─────────────────────────────────────────────
+# 11. mix
+# ─────────────────────────────────────────────
+step "elixir-mix (mix)"
+if has mix; then
+  mkdir -p elixir-mix && cd elixir-mix
+  if [ ! -f mix.exs ]; then
+    warn "mix.exs missing, skipping"
+  else
+    mix deps.get 2>/dev/null || true
+    ok "elixir-mix created ($(du -sh deps 2>/dev/null | cut -f1))"
+  fi
+  cd ..
+else
+  warn "mix not found, skipping"
+fi
+
+# ─────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}━━━ All examples ready! ━━━${NC}"
 echo ""

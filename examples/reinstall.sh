@@ -7,8 +7,10 @@ NODE_BIN_DIR=$(dirname "$(which node 2>/dev/null || echo '/usr/local/bin')")
 BUN_BIN_DIR="$HOME/.bun/bin"
 DENO_BIN_DIR="$HOME/.deno/bin"
 LOCAL_BIN_DIR="$HOME/.local/bin"
+COMPOSER_BIN_DIR="$HOME/.composer/vendor/bin"
+PHP_BIN_DIR="/usr/bin"
 
-export PATH="$NODE_BIN_DIR:$BUN_BIN_DIR:$DENO_BIN_DIR:$LOCAL_BIN_DIR:$PATH"
+export PATH="$NODE_BIN_DIR:$BUN_BIN_DIR:$DENO_BIN_DIR:$LOCAL_BIN_DIR:$COMPOSER_BIN_DIR:$PHP_BIN_DIR:$PATH"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -121,6 +123,42 @@ if [ -d "python-project" ]; then
     ok "done ($(du -sh python-project/.venv 2>/dev/null | cut -f1))"
   else
     fail "pip install failed"
+  fi
+fi
+
+# ─────────────────────────────────────────────
+# 8. poetry projects
+# ─────────────────────────────────────────────
+if [ -d "python-poetry" ]; then
+  step "python-poetry (poetry install)"
+  if (cd python-poetry && poetry install --no-root 2>&1); then
+    ok "done ($(du -sh python-poetry/.venv 2>/dev/null | cut -f1))"
+  else
+    fail "poetry install failed"
+  fi
+fi
+
+# ─────────────────────────────────────────────
+# 9. composer projects
+# ─────────────────────────────────────────────
+if [ -d "php-composer" ]; then
+  step "php-composer (composer install)"
+  if (cd php-composer && composer install --no-interaction 2>&1); then
+    ok "done ($(du -sh php-composer/vendor 2>/dev/null | cut -f1))"
+  else
+    fail "composer install failed"
+  fi
+fi
+
+# ─────────────────────────────────────────────
+# 10. mix projects
+# ─────────────────────────────────────────────
+if [ -d "elixir-mix" ]; then
+  step "elixir-mix (mix deps.get)"
+  if (cd elixir-mix && mix deps.get 2>&1); then
+    ok "done ($(du -sh elixir-mix/deps 2>/dev/null | cut -f1))"
+  else
+    fail "mix deps.get failed"
   fi
 fi
 
