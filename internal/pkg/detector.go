@@ -64,7 +64,7 @@ func DetectManager(dir string) PackageManager {
 }
 
 func isPoetryProject(pyprojectPath string) bool {
-	content, err := os.ReadFile(pyprojectPath)
+	content, err := os.ReadFile(pyprojectPath) //nolint:gosec // path derived from known project directory
 	if err != nil {
 		return false
 	}

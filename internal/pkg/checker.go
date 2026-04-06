@@ -220,84 +220,28 @@ func checkPipHealth(dir string) HealthResult {
 }
 
 func checkPoetryHealth(dir string) HealthResult {
-	result := HealthResult{Dir: dir, PM: Poetry, Healthy: true}
-
-	venvPath := dir + "/.venv"
-	if !DirExists(venvPath) {
-		result.Healthy = false
-		result.Issues = append(result.Issues, ".venv not found")
-		return result
-	}
-
-	cmd := exec.Command("poetry", "check")
-	cmd.Dir = dir
-	output, err := cmd.CombinedOutput()
-
-	if err != nil {
-		result.Healthy = false
-		lines := strings.Split(string(output), "\n")
-		for _, line := range lines {
-			trimmed := strings.TrimSpace(line)
-			if trimmed != "" {
-				result.Issues = append(result.Issues, trimmed)
-				if len(result.Issues) >= 5 {
-					break
-				}
-			}
-		}
-		if len(result.Issues) == 0 {
-			result.Issues = append(result.Issues, "poetry check failed")
-		}
-	}
-
-	return result
+	return checkCommandHealth(dir, Poetry, ".venv", ".venv not found", "poetry", []string{"check"}, "poetry check failed")
 }
 
 func checkComposerHealth(dir string) HealthResult {
-	result := HealthResult{Dir: dir, PM: Composer, Healthy: true}
-
-	vendorPath := dir + "/vendor"
-	if !DirExists(vendorPath) {
-		result.Healthy = false
-		result.Issues = append(result.Issues, "vendor/ not found")
-		return result
-	}
-
-	cmd := exec.Command("composer", "validate")
-	cmd.Dir = dir
-	output, err := cmd.CombinedOutput()
-
-	if err != nil {
-		result.Healthy = false
-		lines := strings.Split(string(output), "\n")
-		for _, line := range lines {
-			trimmed := strings.TrimSpace(line)
-			if trimmed != "" {
-				result.Issues = append(result.Issues, trimmed)
-				if len(result.Issues) >= 5 {
-					break
-				}
-			}
-		}
-		if len(result.Issues) == 0 {
-			result.Issues = append(result.Issues, "composer validate failed")
-		}
-	}
-
-	return result
+	return checkCommandHealth(dir, Composer, "vendor", "vendor/ not found", "composer", []string{"validate"}, "composer validate failed")
 }
 
 func checkMixHealth(dir string) HealthResult {
-	result := HealthResult{Dir: dir, PM: Mix, Healthy: true}
+	return checkCommandHealth(dir, Mix, "deps", "deps/ not found", "mix", []string{"deps.check"}, "mix deps.check failed")
+}
 
-	depsPath := dir + "/deps"
-	if !DirExists(depsPath) {
+func checkCommandHealth(dir string, pm PackageManager, requiredDir, missingMessage, command string, args []string, failureMessage string) HealthResult {
+	result := HealthResult{Dir: dir, PM: pm, Healthy: true}
+
+	requiredPath := dir + "/" + requiredDir
+	if !DirExists(requiredPath) {
 		result.Healthy = false
-		result.Issues = append(result.Issues, "deps/ not found")
+		result.Issues = append(result.Issues, missingMessage)
 		return result
 	}
 
-	cmd := exec.Command("mix", "deps.check")
+	cmd := exec.Command(command, args...) //nolint:gosec // command and args are controlled internally
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 
@@ -314,7 +258,7 @@ func checkMixHealth(dir string) HealthResult {
 			}
 		}
 		if len(result.Issues) == 0 {
-			result.Issues = append(result.Issues, "mix deps.check failed")
+			result.Issues = append(result.Issues, failureMessage)
 		}
 	}
 
