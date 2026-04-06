@@ -25,8 +25,14 @@ func InstallDependencies(dir string, pm PackageManager, silent bool) error {
 		cmd = exec.Command("cargo", "build")
 	case Go:
 		cmd = exec.Command("go", "mod", "tidy")
+	case Poetry:
+		cmd = exec.Command("poetry", "install")
 	case Pip:
 		cmd = exec.Command("pip", "install", "-r", "requirements.txt") // Usually requires careful venv handling but good enough for MVP
+	case Composer:
+		cmd = exec.Command("composer", "install")
+	case Mix:
+		cmd = exec.Command("mix", "deps.get")
 	default:
 		return fmt.Errorf("unknown package manager, cannot run install")
 	}

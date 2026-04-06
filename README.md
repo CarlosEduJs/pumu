@@ -6,7 +6,7 @@ Stop manually hunting down `node_modules` folders eating up gigabytes of disk sp
 
 ## Features
 
-- 🔍 **Multi-language support** - Works with npm, pnpm, yarn, bun, deno, cargo, go, and pip
+- 🔍 **Multi-language support** - Works with npm, pnpm, yarn, bun, deno, cargo, go, pip, poetry, composer, and mix
 - ⚡ **Blazingly fast** - Concurrent scanning and deletion using goroutines with semaphore-based throttling
 - 📊 **Visual feedback** - Color-coded output based on folder size with human-readable formatting
 - 🎯 **Smart detection** - Automatically identifies package managers via lockfiles and manifests
@@ -25,7 +25,9 @@ Pumu can detect and clean these dependency/build folders:
 |-----------------|---------------------------------|--------------|
 | `node_modules`  | npm, yarn, pnpm, bun, deno     | 50-500+ MB   |
 | `target`        | cargo (Rust)                    | 100-2000+ MB |
-| `.venv`         | pip (Python virtual env)        | 50-300+ MB   |
+| `.venv`         | pip, poetry (Python virtual env) | 50-300+ MB   |
+| `vendor`        | composer (PHP)                  | 50-500+ MB   |
+| `deps`          | mix (Elixir)                    | 50-500+ MB   |
 | `.next`         | Next.js                         | 100-500+ MB  |
 | `.svelte-kit`   | SvelteKit                       | 50-200+ MB   |
 | `dist`          | Various build tools             | 10-100+ MB   |
@@ -249,6 +251,9 @@ pumu repair --verbose
 | cargo | `cargo check` |
 | go | `go mod verify` |
 | pip | `pip check` |
+| poetry | `poetry check` |
+| composer | `composer validate` |
+| mix | `mix deps.check` |
 
 ### 6. Prune Mode
 
@@ -305,7 +310,10 @@ Pumu automatically detects the package manager by checking for specific files in
 5. **Deno** - `deno.json` or `deno.jsonc`
 6. **Cargo** - `Cargo.toml`
 7. **Go** - `go.mod`
-8. **Pip** - `requirements.txt` or `pyproject.toml`
+8. **Poetry** - `pyproject.toml` with `[tool.poetry]`
+9. **Pip** - `requirements.txt` or `pyproject.toml`
+10. **Composer** - `composer.json` or `composer.lock`
+11. **Mix** - `mix.exs`
 
 ### Performance Optimizations
 
@@ -362,7 +370,9 @@ pumu/
 - **Package managers** must be installed if using `--reinstall` or `repair`:
   - Node.js: npm, yarn, pnpm, or bun
   - Rust: cargo
-  - Python: pip
+  - Python: pip, poetry
+  - PHP: composer
+  - Elixir: mix
   - Go: go
   - Deno: deno
 

@@ -37,6 +37,12 @@ func CheckHealth(dir string, pm PackageManager) HealthResult {
 		result = checkPipHealth(dir)
 	case Deno:
 		result = checkNodeHealth(dir, pm, "deno")
+	case Poetry:
+		result = checkPoetryHealth(dir)
+	case Composer:
+		result = checkComposerHealth(dir)
+	case Mix:
+		result = checkMixHealth(dir)
 	default:
 		result.Issues = append(result.Issues, "Unknown package manager, cannot check health")
 		result.Healthy = false
@@ -207,6 +213,108 @@ func checkPipHealth(dir string) HealthResult {
 		}
 		if len(result.Issues) == 0 {
 			result.Issues = append(result.Issues, "pip check failed")
+		}
+	}
+
+	return result
+}
+
+func checkPoetryHealth(dir string) HealthResult {
+	result := HealthResult{Dir: dir, PM: Poetry, Healthy: true}
+
+	venvPath := dir + "/.venv"
+	if !DirExists(venvPath) {
+		result.Healthy = false
+		result.Issues = append(result.Issues, ".venv not found")
+		return result
+	}
+
+	cmd := exec.Command("poetry", "check")
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		result.Healthy = false
+		lines := strings.Split(string(output), "\n")
+		for _, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if trimmed != "" {
+				result.Issues = append(result.Issues, trimmed)
+				if len(result.Issues) >= 5 {
+					break
+				}
+			}
+		}
+		if len(result.Issues) == 0 {
+			result.Issues = append(result.Issues, "poetry check failed")
+		}
+	}
+
+	return result
+}
+
+func checkComposerHealth(dir string) HealthResult {
+	result := HealthResult{Dir: dir, PM: Composer, Healthy: true}
+
+	vendorPath := dir + "/vendor"
+	if !DirExists(vendorPath) {
+		result.Healthy = false
+		result.Issues = append(result.Issues, "vendor/ not found")
+		return result
+	}
+
+	cmd := exec.Command("composer", "validate")
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		result.Healthy = false
+		lines := strings.Split(string(output), "\n")
+		for _, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if trimmed != "" {
+				result.Issues = append(result.Issues, trimmed)
+				if len(result.Issues) >= 5 {
+					break
+				}
+			}
+		}
+		if len(result.Issues) == 0 {
+			result.Issues = append(result.Issues, "composer validate failed")
+		}
+	}
+
+	return result
+}
+
+func checkMixHealth(dir string) HealthResult {
+	result := HealthResult{Dir: dir, PM: Mix, Healthy: true}
+
+	depsPath := dir + "/deps"
+	if !DirExists(depsPath) {
+		result.Healthy = false
+		result.Issues = append(result.Issues, "deps/ not found")
+		return result
+	}
+
+	cmd := exec.Command("mix", "deps.check")
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		result.Healthy = false
+		lines := strings.Split(string(output), "\n")
+		for _, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if trimmed != "" {
+				result.Issues = append(result.Issues, trimmed)
+				if len(result.Issues) >= 5 {
+					break
+				}
+			}
+		}
+		if len(result.Issues) == 0 {
+			result.Issues = append(result.Issues, "mix deps.check failed")
 		}
 	}
 
