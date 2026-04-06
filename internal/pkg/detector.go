@@ -5,6 +5,7 @@ package pkg
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // PackageManager represents the type of package manager detected in a project.
@@ -12,39 +13,62 @@ type PackageManager string
 
 // Supported package managers.
 const (
-	Npm     PackageManager = "npm"
-	Pnpm    PackageManager = "pnpm"
-	Yarn    PackageManager = "yarn"
-	Bun     PackageManager = "bun"
-	Deno    PackageManager = "deno"
-	Cargo   PackageManager = "cargo"
-	Go      PackageManager = "go"
-	Pip     PackageManager = "pip"
-	Unknown PackageManager = "unknown"
+	Npm      PackageManager = "npm"
+	Pnpm     PackageManager = "pnpm"
+	Yarn     PackageManager = "yarn"
+	Bun      PackageManager = "bun"
+	Deno     PackageManager = "deno"
+	Cargo    PackageManager = "cargo"
+	Go       PackageManager = "go"
+	Poetry   PackageManager = "poetry"
+	Pip      PackageManager = "pip"
+	Composer PackageManager = "composer"
+	Mix      PackageManager = "mix"
+	Unknown  PackageManager = "unknown"
 )
 
 // DetectManager identifies the package manager used in dir by checking for lock files.
 func DetectManager(dir string) PackageManager {
-	managers := map[PackageManager][]string{
-		Bun:   {"bun.lockb", "bun.lock"},
-		Pnpm:  {"pnpm-lock.yaml"},
-		Yarn:  {"yarn.lock"},
-		Npm:   {"package-lock.json"},
-		Deno:  {"deno.json", "deno.jsonc"},
-		Cargo: {"Cargo.toml"},
-		Go:    {"go.mod"},
-		Pip:   {"requirements.txt", "pyproject.toml"},
+	orderedManagers := []struct {
+		manager PackageManager
+		files   []string
+		match   func(string) bool
+	}{
+		{manager: Bun, files: []string{"bun.lockb", "bun.lock"}},
+		{manager: Pnpm, files: []string{"pnpm-lock.yaml"}},
+		{manager: Yarn, files: []string{"yarn.lock"}},
+		{manager: Npm, files: []string{"package-lock.json"}},
+		{manager: Deno, files: []string{"deno.json", "deno.jsonc"}},
+		{manager: Cargo, files: []string{"Cargo.toml"}},
+		{manager: Go, files: []string{"go.mod"}},
+		{manager: Poetry, files: []string{"pyproject.toml"}, match: isPoetryProject},
+		{manager: Pip, files: []string{"requirements.txt", "pyproject.toml"}},
+		{manager: Composer, files: []string{"composer.json", "composer.lock"}},
+		{manager: Mix, files: []string{"mix.exs"}},
 	}
 
-	for mgr, files := range managers {
-		for _, f := range files {
-			if fileExists(filepath.Join(dir, f)) {
-				return mgr
+	for _, entry := range orderedManagers {
+		for _, f := range entry.files {
+			path := filepath.Join(dir, f)
+			if !fileExists(path) {
+				continue
 			}
+			if entry.match != nil && !entry.match(path) {
+				continue
+			}
+			return entry.manager
 		}
 	}
 
 	return Unknown
+}
+
+func isPoetryProject(pyprojectPath string) bool {
+	content, err := os.ReadFile(pyprojectPath) //nolint:gosec // path derived from known project directory
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(content), "[tool.poetry]")
 }
 
 func fileExists(filename string) bool {

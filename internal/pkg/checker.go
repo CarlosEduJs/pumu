@@ -37,6 +37,12 @@ func CheckHealth(dir string, pm PackageManager) HealthResult {
 		result = checkPipHealth(dir)
 	case Deno:
 		result = checkNodeHealth(dir, pm, "deno")
+	case Poetry:
+		result = checkPoetryHealth(dir)
+	case Composer:
+		result = checkComposerHealth(dir)
+	case Mix:
+		result = checkMixHealth(dir)
 	default:
 		result.Issues = append(result.Issues, "Unknown package manager, cannot check health")
 		result.Healthy = false
@@ -207,6 +213,52 @@ func checkPipHealth(dir string) HealthResult {
 		}
 		if len(result.Issues) == 0 {
 			result.Issues = append(result.Issues, "pip check failed")
+		}
+	}
+
+	return result
+}
+
+func checkPoetryHealth(dir string) HealthResult {
+	return checkCommandHealth(dir, Poetry, ".venv", ".venv not found", "poetry", []string{"check"}, "poetry check failed")
+}
+
+func checkComposerHealth(dir string) HealthResult {
+	return checkCommandHealth(dir, Composer, "vendor", "vendor/ not found", "composer", []string{"validate"}, "composer validate failed")
+}
+
+func checkMixHealth(dir string) HealthResult {
+	return checkCommandHealth(dir, Mix, "deps", "deps/ not found", "mix", []string{"deps.check"}, "mix deps.check failed")
+}
+
+func checkCommandHealth(dir string, pm PackageManager, requiredDir, missingMessage, command string, args []string, failureMessage string) HealthResult {
+	result := HealthResult{Dir: dir, PM: pm, Healthy: true}
+
+	requiredPath := dir + "/" + requiredDir
+	if !DirExists(requiredPath) {
+		result.Healthy = false
+		result.Issues = append(result.Issues, missingMessage)
+		return result
+	}
+
+	cmd := exec.Command(command, args...) //nolint:gosec // command and args are controlled internally
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		result.Healthy = false
+		lines := strings.Split(string(output), "\n")
+		for _, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if trimmed != "" {
+				result.Issues = append(result.Issues, trimmed)
+				if len(result.Issues) >= 5 {
+					break
+				}
+			}
+		}
+		if len(result.Issues) == 0 {
+			result.Issues = append(result.Issues, failureMessage)
 		}
 	}
 

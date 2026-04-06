@@ -21,32 +21,7 @@ fail() { echo -e "${RED}  ✗ $1${NC}"; }
 has() { command -v "$1" &>/dev/null; }
 
 # ─────────────────────────────────────────────
-# 1. npm
-# ─────────────────────────────────────────────
-step "node-npm (npm)"
-if has npm; then
-  mkdir -p node-npm && cd node-npm
-  cat > package.json <<'EOF'
-{
-  "name": "example-npm",
-  "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "express": "^4.21.0",
-    "lodash": "^4.17.21",
-    "chalk": "^5.4.0"
-  }
-}
-EOF
-  npm install --silent 2>/dev/null
-  ok "node-npm created ($(du -sh node_modules 2>/dev/null | cut -f1))"
-  cd ..
-else
-  warn "npm not found, skipping"
-fi
-
-# ─────────────────────────────────────────────
-# 2. pnpm
+# 1. pnpm
 # ─────────────────────────────────────────────
 step "node-pnpm (pnpm)"
 if has pnpm; then
@@ -71,7 +46,7 @@ else
 fi
 
 # ─────────────────────────────────────────────
-# 3. bun
+# 2. bun
 # ─────────────────────────────────────────────
 step "node-bun (bun)"
 if has bun; then
@@ -95,75 +70,7 @@ else
 fi
 
 # ─────────────────────────────────────────────
-# 4. deno
-# ─────────────────────────────────────────────
-step "deno-project (deno)"
-if has deno; then
-  mkdir -p deno-project && cd deno-project
-  cat > deno.json <<'EOF'
-{
-  "imports": {
-    "@std/path": "jsr:@std/path@^1.0.0",
-    "@std/fs": "jsr:@std/fs@^1.0.0"
-  }
-}
-EOF
-  cat > main.ts <<'EOF'
-import { join } from "@std/path";
-import { exists } from "@std/fs";
-
-const p = join(".", "hello");
-console.log("exists:", await exists(p));
-EOF
-  deno install --allow-read 2>/dev/null || true
-  ok "deno-project created ($(du -sh node_modules 2>/dev/null | cut -f1))"
-  cd ..
-else
-  warn "deno not found, skipping"
-fi
-
-# ─────────────────────────────────────────────
-# 5. rust
-# ─────────────────────────────────────────────
-step "rust-project (cargo)"
-if has cargo; then
-  mkdir -p rust-project && cd rust-project
-  cat > Cargo.toml <<'EOF'
-[package]
-name = "example-rust"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-tokio = { version = "1", features = ["full"] }
-EOF
-  mkdir -p src
-  cat > src/main.rs <<'EOF'
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Example {
-    name: String,
-    value: i32,
-}
-
-fn main() {
-    let e = Example { name: "pumu".into(), value: 42 };
-    let json = serde_json::to_string_pretty(&e).unwrap();
-    println!("{json}");
-}
-EOF
-  cargo build 2>/dev/null
-  ok "rust-project created ($(du -sh target 2>/dev/null | cut -f1))"
-  cd ..
-else
-  warn "cargo not found, skipping"
-fi
-
-# ─────────────────────────────────────────────
-# 6. go
+# 3. go
 # ─────────────────────────────────────────────
 step "go-project (go)"
 if has go; then
@@ -192,7 +99,7 @@ else
 fi
 
 # ─────────────────────────────────────────────
-# 7. python
+# 4. python
 # ─────────────────────────────────────────────
 step "python-project (pip + venv)"
 if has python3; then
@@ -211,7 +118,7 @@ else
 fi
 
 # ─────────────────────────────────────────────
-# 8. next.js
+# 5. next.js
 # ─────────────────────────────────────────────
 step "nextjs-project (next.js)"
 if has npx; then
@@ -250,6 +157,23 @@ EOF
   cd ..
 else
   warn "npx not found, skipping"
+fi
+
+# ─────────────────────────────────────────────
+# 6. mix
+# ─────────────────────────────────────────────
+step "elixir-mix (mix)"
+if has mix; then
+  mkdir -p elixir-mix && cd elixir-mix
+  if [ ! -f mix.exs ]; then
+    warn "mix.exs missing, skipping"
+  else
+    mix deps.get 2>/dev/null || true
+    ok "elixir-mix created ($(du -sh deps 2>/dev/null | cut -f1))"
+  fi
+  cd ..
+else
+  warn "mix not found, skipping"
 fi
 
 # ─────────────────────────────────────────────

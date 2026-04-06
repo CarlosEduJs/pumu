@@ -34,15 +34,6 @@ fail() {
 # ─────────────────────────────────────────────
 # 1. npm projects
 # ─────────────────────────────────────────────
-if [ -d "node-npm" ]; then
-  step "node-npm (npm install)"
-  if (cd node-npm && npm install 2>&1); then
-    ok "done ($(du -sh node-npm/node_modules 2>/dev/null | cut -f1))"
-  else
-    fail "npm install failed"
-  fi
-fi
-
 if [ -d "nextjs-project" ]; then
   step "nextjs-project (npm install + next build)"
   if (cd nextjs-project && npm install 2>&1 && npx next build 2>&1); then
@@ -77,31 +68,7 @@ if [ -d "node-bun" ]; then
 fi
 
 # ─────────────────────────────────────────────
-# 4. deno projects
-# ─────────────────────────────────────────────
-if [ -d "deno-project" ]; then
-  step "deno-project (deno install)"
-  if (cd deno-project && deno install 2>&1); then
-    ok "done"
-  else
-    fail "deno install failed"
-  fi
-fi
-
-# ─────────────────────────────────────────────
-# 5. rust projects
-# ─────────────────────────────────────────────
-if [ -d "rust-project" ]; then
-  step "rust-project (cargo build)"
-  if (cd rust-project && cargo build 2>&1); then
-    ok "done ($(du -sh rust-project/target 2>/dev/null | cut -f1))"
-  else
-    fail "cargo build failed"
-  fi
-fi
-
-# ─────────────────────────────────────────────
-# 6. go projects
+# 4. go projects
 # ─────────────────────────────────────────────
 if [ -d "go-project" ]; then
   step "go-project (go build)"
@@ -113,7 +80,7 @@ if [ -d "go-project" ]; then
 fi
 
 # ─────────────────────────────────────────────
-# 7. python projects
+# 5. python projects
 # ─────────────────────────────────────────────
 if [ -d "python-project" ]; then
   step "python-project (venv + pip install)"
@@ -121,6 +88,18 @@ if [ -d "python-project" ]; then
     ok "done ($(du -sh python-project/.venv 2>/dev/null | cut -f1))"
   else
     fail "pip install failed"
+  fi
+fi
+
+# ─────────────────────────────────────────────
+# 6. mix projects
+# ─────────────────────────────────────────────
+if [ -d "elixir-mix" ]; then
+  step "elixir-mix (mix deps.get)"
+  if (cd elixir-mix && mix deps.get 2>&1); then
+    ok "done ($(du -sh elixir-mix/deps 2>/dev/null | cut -f1))"
+  else
+    fail "mix deps.get failed"
   fi
 fi
 

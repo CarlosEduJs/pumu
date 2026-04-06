@@ -33,7 +33,8 @@ var ignoredPaths = map[string]bool{
 // deletableTargets contains known heavy dependency/build folders.
 var deletableTargets = map[string]bool{
 	"node_modules": true, "target": true, ".next": true,
-	".svelte-kit": true, ".venv": true, "dist": true, "build": true,
+	".svelte-kit": true, ".venv": true, "vendor": true,
+	"deps": true, "dist": true, "build": true,
 }
 
 func isIgnoredPath(name string) bool     { return ignoredPaths[name] }
@@ -47,6 +48,12 @@ func getTargetFolder(pm pkg.PackageManager) string {
 		return "target"
 	case pkg.Pip:
 		return ".venv"
+	case pkg.Poetry:
+		return ".venv"
+	case pkg.Composer:
+		return "vendor"
+	case pkg.Mix:
+		return "deps"
 	}
 	return "node_modules"
 }

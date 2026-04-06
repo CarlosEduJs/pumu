@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v1.2.1"
+const version = "v1.3.0"
 
 var rootCmd = &cobra.Command{
 	Use:   "pumu",

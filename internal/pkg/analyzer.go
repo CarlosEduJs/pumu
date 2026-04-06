@@ -3,6 +3,7 @@
 package pkg
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -21,7 +22,7 @@ type PruneResult struct {
 
 // AnalyzeFolder evaluates whether a dependency/build folder is safe to prune
 // based on multiple heuristics: orphan status, build cache, lockfile staleness,
-// and uncommitted changes.
+// git cleanliness, and access time.
 func AnalyzeFolder(folderPath string, size int64) PruneResult {
 	result := PruneResult{
 		Path: folderPath,
@@ -46,7 +47,25 @@ func AnalyzeFolder(folderPath string, size int64) PruneResult {
 		return result
 	}
 
-	// Check lockfile age (staleness) - heuristic 3
+	// Check git status for uncommitted changes - heuristic 3
+	if gitRoot, ok := findGitRoot(projectDir); ok && hasUncommittedChanges(gitRoot) {
+		result.Score = 10
+		result.Reason = "⚪ Uncommitted changes in repo"
+		return result
+	}
+
+	// Check access time for recent usage - heuristic 4
+	accessAge, hasAccessAge := getAccessAge(folderPath)
+	if hasAccessAge {
+		accessDays := int(accessAge.Hours() / 24)
+		if accessDays < 7 {
+			result.Score = 15
+			result.Reason = "⚪ Recently accessed (" + formatDays(accessDays) + ")"
+			return result
+		}
+	}
+
+	// Check lockfile age (staleness) - heuristic 5
 	lockfileAge := getLockfileAge(projectDir, pm)
 	if lockfileAge > 0 {
 		days := int(lockfileAge.Hours() / 24)
@@ -63,14 +82,17 @@ func AnalyzeFolder(folderPath string, size int64) PruneResult {
 		}
 	}
 
-	// Check git status for uncommitted lockfile changes - heuristic 4
-	if hasUncommittedLockfileChanges(projectDir) {
-		result.Score = 15
-		result.Reason = "⚪ Uncommitted lockfile changes (active work)"
-		return result
+	// Check access time for long inactivity - heuristic 6
+	if hasAccessAge {
+		accessDays := int(accessAge.Hours() / 24)
+		if accessDays > 90 {
+			result.Score = 70
+			result.Reason = "🟡 Inactive (last access " + formatDays(accessDays) + ")"
+			return result
+		}
 	}
 
-	// Recent lockfile = active project - heuristic 5
+	// Recent lockfile = active project - heuristic 7
 	if lockfileAge > 0 && lockfileAge.Hours()/24 < 7 {
 		result.Score = 20
 		result.Reason = "⚪ Active project (recently modified)"
@@ -134,36 +156,37 @@ func getLockfiles(pm PackageManager) []string {
 	}
 }
 
-// hasUncommittedLockfileChanges checks if git reports uncommitted changes
-// in the project directory.
-func hasUncommittedLockfileChanges(dir string) bool {
-	// Quick check: is this even a git repo?
-	gitDir := filepath.Join(dir, ".git")
-	if _, err := os.Stat(gitDir); err != nil {
-		// Walk up to find .git
-		parent := dir
-		found := false
-		for i := 0; i < 5; i++ {
-			parent = filepath.Dir(parent)
-			if _, err := os.Stat(filepath.Join(parent, ".git")); err == nil {
-				found = true
-				break
-			}
+func findGitRoot(dir string) (string, bool) {
+	current := dir
+	for i := 0; i < 10; i++ {
+		if DirExists(filepath.Join(current, ".git")) {
+			return current, true
 		}
-		if !found {
-			return false
+		parent := filepath.Dir(current)
+		if parent == current {
+			break
 		}
+		current = parent
 	}
+	return "", false
+}
 
-	// Use git status to check for uncommitted changes in lockfiles
-	cmd := execCommand("git", "status", "--porcelain", dir)
+func hasUncommittedChanges(dir string) bool {
+	cmd := execCommand("git", "status", "--porcelain")
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return false
 	}
+	return len(bytes.TrimSpace(output)) > 0
+}
 
-	return len(output) > 0
+func getAccessAge(path string) (time.Duration, bool) {
+	accessTime, ok := accessTime(path)
+	if !ok || accessTime.IsZero() {
+		return 0, false
+	}
+	return time.Since(accessTime), true
 }
 
 // formatDays returns a human-readable string for a number of days.
